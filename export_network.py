@@ -1,10 +1,11 @@
+import os
 import tensorflow as tf
 from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2
 
 from networks import InferenceModel
 
 
-def freeze_model(source_model, network, name, iteration, input_channel_count, data_format="channels_last", input_type=tf.uint8):
+def freeze_model(source_model, network, name, iteration, input_channel_count, save_dir, data_format="channels_last", input_type=tf.uint8):
     if data_format == 'channels_first':
         model = network(data_format="channels_first")
         model.build(input_shape=(None, None, None, input_channel_count))
@@ -28,13 +29,13 @@ def freeze_model(source_model, network, name, iteration, input_channel_count, da
 
     tf.io.write_graph(graph_or_graph_def=frozen_func.graph,
                       logdir="./",
-                      name=f"{name}-{iteration:07d}-{data_format}.pb",
+                      name=os.path.join(save_dir, f"{name}-{iteration:07d}-{data_format}.pb"),
                       as_text=False)
 
     return ["Input:0"], [f'Identity:0']
 
 
-def save_toml(name, head_names, iteration, inputs, outputs, data_format='NCHW'):
+def save_toml(name, head_names, iteration, inputs, outputs, save_dir, data_format='NCHW'):
     head_names_string = ""
     segmentation_output = ""
     class_ids_string = ""
@@ -70,16 +71,16 @@ def save_toml(name, head_names, iteration, inputs, outputs, data_format='NCHW'):
             '\n'
             )
 
-    with open(f'{name}-{iteration:07d}-{data_format}.toml', "w") as toml_file:
+    with open(os.path.join(save_dir, f'{name}-{iteration:07d}-{data_format}.toml'), "w") as toml_file:
         print(f"{toml}", file=toml_file)
 
 
-def export_network(source_model, network, name, iteration, input_channel_count=3, head_names=['segmentation']):
-    inputs, outputs = freeze_model(source_model, network, name, iteration, input_channel_count, data_format="channels_first")
-    save_toml(name, head_names, iteration, inputs, outputs, data_format='NCHW')
+def export_network(source_model, network, save_dir, name, iteration, input_channel_count=3, head_names=['segmentation']):
+    inputs, outputs = freeze_model(source_model, network, name, iteration, input_channel_count, save_dir, data_format="channels_first")
+    save_toml(name, head_names, iteration, inputs, outputs, save_dir, data_format='NCHW')
 
-    inputs, outputs = freeze_model(source_model, network, name, iteration, input_channel_count, data_format='channels_last')
-    save_toml(name, head_names, iteration, inputs, outputs, data_format='NHWC')
+    inputs, outputs = freeze_model(source_model, network, name, iteration, input_channel_count, save_dir, data_format='channels_last')
+    save_toml(name, head_names, iteration, inputs, outputs, save_dir, data_format='NHWC')
 
 
 if __name__ == '__main__':
@@ -89,6 +90,7 @@ if __name__ == '__main__':
     model.build(input_shape=(None, None, None, 3))
     export_network(source_model=model,
                    network=NET_CONFIGS['SimpleNet'],
+                   save_dir='./',
                    name='seg',
                    iteration=200,
                    input_channel_count=3)

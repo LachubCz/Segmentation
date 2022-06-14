@@ -24,11 +24,11 @@ def parse_arguments():
     return args
 
 
-def train_model(model, X, Y, epochs=15, batch_size=16):
-    if not os.path.exists('Data/Checkpoints/'):
-        os.makedirs('Data/Checkpoints/')
+def train_model(model, X, Y, save_dir, epochs=15, batch_size=16):
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
 
-    cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath='/home/pbuchal/repositories/Cat-Segmentation/Data/Checkpoints/cp-{epoch:0002d}.ckpt',
+    cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=os.path.join(save_dir, 'cp-{epoch:0002d}.ckpt'),
                                                      save_weights_only=True,
                                                      verbose=1)
     model.fit(X, Y, batch_size=batch_size, epochs=epochs, shuffle=True, callbacks=[cp_callback])
@@ -46,8 +46,8 @@ def main():
     model.compile(optimizer=tf.keras.optimizers.Adam(lr=0.0002),
                   loss=tf.keras.losses.MeanSquaredError())
 
-    model = train_model(model, X, Y, epochs=args.epochs, batch_size=args.batch_iteration)
-    export_network(model, NET_CONFIGS[args.net], name=args.name, iteration=args.epochs, input_channel_count=3)
+    model = train_model(model, X, Y, args.save_dir, epochs=args.epochs, batch_size=args.batch_size)
+    export_network(model, NET_CONFIGS[args.net], args.save_dir, name=args.name, iteration=args.epochs, input_channel_count=3)
 
     if args.visualize:
         for image, gt in zip(X, Y):
