@@ -4,9 +4,6 @@ import numpy as np
 import tensorflow as tf
 from dataset import get_dataset
 
-from tensorflow.python.ops.numpy_ops import np_config
-np_config.enable_numpy_behavior()
-
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
